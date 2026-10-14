@@ -1,0 +1,158 @@
+asyncapi: 3.0.0
+info:
+  title: Nexo WebSocket
+  version: 0.1.0
+  description: |
+    Canal de uma conversa. Autenticado pelo cookie de sessão no handshake e com checagem de Origin.
+    O servidor envia todos os eventos com seq > lastSeq e depois os novos, ao vivo (doc 06).
+
+servers:
+  local:
+    host: localhost:8080
+    protocol: ws
+
+channels:
+  conversation:
+    address: /ws/conversations/{conversationId}
+    parameters:
+      conversationId:
+        description: UUID da conversa (do usuário logado)
+    bindings:
+      ws:
+        query:
+          type: object
+          properties:
+            lastSeq:
+              type: integer
+              minimum: 0
+              default: 0
+    messages:
+      userMessage: { $ref: "#/components/messages/UserMessage" }
+      approvalDecide: { $ref: "#/components/messages/ApprovalDecide" }
+      turnStop: { $ref: "#/components/messages/TurnStop" }
+      event: { $ref: "#/components/messages/Event" }
+      ack: { $ref: "#/components/messages/Ack" }
+      nack: { $ref: "#/components/messages/Nack" }
+
+operations:
+  sendUserMessage:
+    action: receive
+    channel: { $ref: "#/channels/conversation" }
+    messages: [{ $ref: "#/channels/conversation/messages/userMessage" }]
+  decideApproval:
+    action: receive
+    channel: { $ref: "#/channels/conversation" }
+    messages: [{ $ref: "#/channels/conversation/messages/approvalDecide" }]
+  stopTurn:
+    action: receive
+    channel: { $ref: "#/channels/conversation" }
+    messages: [{ $ref: "#/channels/conversation/messages/turnStop" }]
+  publishEvent:
+    action: send
+    channel: { $ref: "#/channels/conversation" }
+    messages: [{ $ref: "#/channels/conversation/messages/event" }]
+  replyCommand:
+    action: send
+    channel: { $ref: "#/channels/conversation" }
+    messages:
+      - { $ref: "#/channels/conversation/messages/ack" }
+      - { $ref: "#/channels/conversation/messages/nack" }
+
+components:
+  messages:
+    UserMessage:
+      name: user.message
+      payload:
+        $ref: "#/components/schemas/Command"
+      examples:
+        - payload: { kind: command, id: "8a1f2c0e-6a8b-4c55-9d1e-6f0b8a2d3c11", type: user.message, payload: { text: "o que tenho amanhã?" } }
+    ApprovalDecide:
+      name: approval.decide
+      payload:
+        $ref: "#/components/schemas/Command"
+      examples:
+        - payload: { kind: command, id: "b6c1…", type: approval.decide, payload: { approvalId: "3f0e…", decision: approve } }
+    TurnStop:
+      name: turn.stop
+      payload:
+        $ref: "#/components/schemas/Command"
+    Event:
+      name: event
+      payload:
+        $ref: "#/components/schemas/Event"
+    Ack:
+      name: ack
+      payload:
+        type: object
+        required: [kind, commandId]
+        properties:
+          kind: { const: ack }
+          commandId: { type: string }
+          turnId: { type: string, format: uuid }
+    Nack:
+      name: nack
+      payload:
+        type: object
+        required: [kind, code, message]
+        properties:
+          kind: { const: nack }
+          commandId: { type: [string, "null"] }
+          code:
+            type: string
+            enum: [TURN_IN_PROGRESS, INVALID_PAYLOAD, UNKNOWN_COMMAND, APPROVAL_NOT_PENDING, APPROVAL_EXPIRED, NOT_FOUND, NO_ACTIVE_TURN, RATE_LIMITED]
+          message: { type: string }
+
+  schemas:
+    Command:
+      type: object
+      required: [kind, id, type, payload]
+      properties:
+        kind: { const: command }
+        id: { type: string, format: uuid, description: "Gerado pelo cliente; em user.message é o clientMessageId (idempotência)" }
+        type: { type: string, enum: [user.message, approval.decide, turn.stop] }
+        payload:
+          oneOf:
+            - type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 8000 }
+                timeZone: { type: string, description: "IANA, ex.: America/Sao_Paulo" }
+            - type: object
+              required: [approvalId, decision]
+              properties:
+                approvalId: { type: string, format: uuid }
+                decision: { type: string, enum: [approve, reject] }
+            - type: object
+              maxProperties: 0
+
+    Event:
+      type: object
+      required: [kind, seq, conversationId, type, at, payload]
+      properties:
+        kind: { const: event }
+        seq: { type: integer, minimum: 1 }
+        conversationId: { type: string, format: uuid }
+        turnId: { type: [string, "null"], format: uuid }
+        at: { type: string, format: date-time }
+        type:
+          type: string
+          enum:
+            - message.user
+            - turn.started
+            - assistant.delta
+            - assistant.message
+            - tool.search
+            - context.suggested
+            - tool.started
+            - tool.blocked
+            - approval.requested
+            - approval.resolved
+            - tool.completed
+            - usage.updated
+            - turn.completed
+            - turn.failed
+            - context.changed
+            - conversation.renamed
+        payload:
+          description: Formato por tipo na tabela da seção 4 do doc 06
+          type: object

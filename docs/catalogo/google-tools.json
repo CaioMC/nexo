@@ -1,0 +1,1581 @@
+{
+  "version": 1,
+  "source": "google-tools/src/server/tools/GoogleWorkspaceTools.mjs (50 funções)",
+  "contexts": [
+    {
+      "key": "gmail",
+      "name": "Gmail",
+      "description": "Buscar, ler, rascunhar e etiquetar e-mails.",
+      "google_api": "gmail.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.compose"
+      ]
+    },
+    {
+      "key": "drive",
+      "name": "Drive",
+      "description": "Encontrar, criar, editar e apagar arquivos.",
+      "google_api": "drive.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/drive"
+      ]
+    },
+    {
+      "key": "docs",
+      "name": "Docs",
+      "description": "Ler e editar documentos.",
+      "google_api": "docs.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/documents"
+      ]
+    },
+    {
+      "key": "sheets",
+      "name": "Sheets",
+      "description": "Ler e editar planilhas.",
+      "google_api": "sheets.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets"
+      ]
+    },
+    {
+      "key": "slides",
+      "name": "Slides",
+      "description": "Ler e editar apresentações.",
+      "google_api": "slides.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/presentations"
+      ]
+    },
+    {
+      "key": "calendar",
+      "name": "Calendar",
+      "description": "Ler e gerenciar agendas e eventos.",
+      "google_api": "calendar-json.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/calendar"
+      ]
+    },
+    {
+      "key": "chat",
+      "name": "Chat",
+      "description": "Ler espaços e mensagens e enviar mensagens.",
+      "google_api": "chat.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/chat.spaces.readonly",
+        "https://www.googleapis.com/auth/chat.memberships.readonly",
+        "https://www.googleapis.com/auth/chat.messages.readonly",
+        "https://www.googleapis.com/auth/chat.messages.create",
+        "https://www.googleapis.com/auth/chat.users.readstate"
+      ]
+    },
+    {
+      "key": "people",
+      "name": "Contatos",
+      "description": "Ler o perfil e gerenciar contatos.",
+      "google_api": "people.googleapis.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/contacts"
+      ]
+    }
+  ],
+  "namespaces": [
+    {
+      "name": "google_gmail_message",
+      "context": "gmail",
+      "description": "Gmail - mensagens e conversas (threads)."
+    },
+    {
+      "name": "google_gmail_draft",
+      "context": "gmail",
+      "description": "Gmail - rascunhos de e-mail."
+    },
+    {
+      "name": "google_gmail_label",
+      "context": "gmail",
+      "description": "Gmail - marcadores (labels)."
+    },
+    {
+      "name": "google_drive_file",
+      "context": "drive",
+      "description": "Drive - arquivos e pastas."
+    },
+    {
+      "name": "google_drive_permission",
+      "context": "drive",
+      "description": "Drive - permissões e compartilhamento."
+    },
+    {
+      "name": "google_docs_document",
+      "context": "docs",
+      "description": "Docs - documentos de texto."
+    },
+    {
+      "name": "google_sheets_spreadsheet",
+      "context": "sheets",
+      "description": "Sheets - planilhas: estrutura e criação."
+    },
+    {
+      "name": "google_sheets_values",
+      "context": "sheets",
+      "description": "Sheets - valores de células e intervalos."
+    },
+    {
+      "name": "google_slides_presentation",
+      "context": "slides",
+      "description": "Slides - apresentações."
+    },
+    {
+      "name": "google_calendar_calendar",
+      "context": "calendar",
+      "description": "Calendar - agendas do usuário."
+    },
+    {
+      "name": "google_calendar_event",
+      "context": "calendar",
+      "description": "Calendar - eventos e convites."
+    },
+    {
+      "name": "google_chat_space",
+      "context": "chat",
+      "description": "Chat - espaços e estado de leitura."
+    },
+    {
+      "name": "google_chat_message",
+      "context": "chat",
+      "description": "Chat - mensagens."
+    },
+    {
+      "name": "google_chat_membership",
+      "context": "chat",
+      "description": "Chat - membros de espaços."
+    },
+    {
+      "name": "google_people_profile",
+      "context": "people",
+      "description": "Contatos - perfil do usuário conectado."
+    },
+    {
+      "name": "google_people_contact",
+      "context": "people",
+      "description": "Contatos - agenda de contatos."
+    }
+  ],
+  "tools": [
+    {
+      "name": "google_gmail_search",
+      "namespace": "google_gmail_message",
+      "effect": "READ",
+      "description": "Busca e-mails no Gmail com a sintaxe de busca do Gmail (remetente, assunto, data, marcador).",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "query",
+          "type": "string",
+          "description": "Texto da busca.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "maxResults",
+          "type": "integer",
+          "description": "Quantidade máxima de resultados.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 20
+        }
+      ]
+    },
+    {
+      "name": "google_gmail_get_message",
+      "namespace": "google_gmail_message",
+      "effect": "READ",
+      "description": "Lê uma mensagem do Gmail pelo id: remetente, destinatários, assunto e corpo.",
+      "depends_on": [
+        "google_gmail_search"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "messageId",
+          "type": "string",
+          "description": "Id da mensagem do Gmail.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_gmail_list_drafts",
+      "namespace": "google_gmail_draft",
+      "effect": "READ",
+      "description": "Lista os rascunhos de e-mail do Gmail.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "maxResults",
+          "type": "integer",
+          "description": "Quantidade máxima de resultados.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ]
+    },
+    {
+      "name": "google_gmail_list_labels",
+      "namespace": "google_gmail_label",
+      "effect": "READ",
+      "description": "Lista os marcadores (labels) do Gmail com os ids.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": []
+    },
+    {
+      "name": "google_gmail_create_draft",
+      "namespace": "google_gmail_draft",
+      "effect": "WRITE",
+      "description": "Cria um rascunho de e-mail com destinatários, assunto e corpo. Não envia.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "to",
+          "type": "array",
+          "description": "E-mails dos destinatários.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "subject",
+          "type": "string",
+          "description": "Assunto do e-mail.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "body",
+          "type": "string",
+          "description": "Corpo do e-mail em texto simples.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "cc",
+          "type": "array",
+          "description": "E-mails em cópia.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "ordinal": 5,
+          "name": "bcc",
+          "type": "array",
+          "description": "E-mails em cópia oculta.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_gmail_modify_message",
+      "namespace": "google_gmail_message",
+      "effect": "WRITE",
+      "description": "Adiciona ou remove marcadores de uma mensagem do Gmail (arquivar, marcar como lida, etiquetar).",
+      "depends_on": [
+        "google_gmail_get_message",
+        "google_gmail_list_labels"
+      ],
+      "dag_level": 2,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "messageId",
+          "type": "string",
+          "description": "Id da mensagem do Gmail.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "addLabelIds",
+          "type": "array",
+          "description": "Ids dos marcadores a adicionar.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "removeLabelIds",
+          "type": "array",
+          "description": "Ids dos marcadores a remover.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_gmail_modify_thread",
+      "namespace": "google_gmail_message",
+      "effect": "WRITE",
+      "description": "Adiciona ou remove marcadores de uma conversa (thread) inteira do Gmail.",
+      "depends_on": [
+        "google_gmail_list_labels",
+        "google_gmail_search"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "threadId",
+          "type": "string",
+          "description": "Id da conversa (thread) do Gmail.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "addLabelIds",
+          "type": "array",
+          "description": "Ids dos marcadores a adicionar.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "removeLabelIds",
+          "type": "array",
+          "description": "Ids dos marcadores a remover.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_drive_search",
+      "namespace": "google_drive_file",
+      "effect": "READ",
+      "description": "Busca arquivos no Google Drive pelo nome ou pelo conteúdo.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "query",
+          "type": "string",
+          "description": "Texto da busca.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "maxResults",
+          "type": "integer",
+          "description": "Quantidade máxima de resultados.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ]
+    },
+    {
+      "name": "google_drive_get_metadata",
+      "namespace": "google_drive_file",
+      "effect": "READ",
+      "description": "Consulta os metadados de um arquivo do Drive pelo id: nome, tipo, dono, datas e link.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "fileId",
+          "type": "string",
+          "description": "Id do arquivo no Drive.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_drive_list_recent",
+      "namespace": "google_drive_file",
+      "effect": "READ",
+      "description": "Lista os arquivos do Drive modificados recentemente.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "maxResults",
+          "type": "integer",
+          "description": "Quantidade máxima de resultados.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ]
+    },
+    {
+      "name": "google_drive_get_permissions",
+      "namespace": "google_drive_permission",
+      "effect": "READ",
+      "description": "Lista quem tem acesso a um arquivo do Drive e com qual papel.",
+      "depends_on": [
+        "google_drive_get_metadata"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "fileId",
+          "type": "string",
+          "description": "Id do arquivo no Drive.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_drive_create_file",
+      "namespace": "google_drive_file",
+      "effect": "WRITE",
+      "description": "Cria um arquivo de texto no Google Drive, opcionalmente dentro de uma pasta.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type": "string",
+          "description": "Nome legível exibido ao usuário (arquivo, contato).",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "content",
+          "type": "string",
+          "description": "Conteúdo em texto UTF-8.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "parentId",
+          "type": "string",
+          "description": "Id da pasta de destino; vazio para Meu Drive.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_drive_update_content",
+      "namespace": "google_drive_file",
+      "effect": "WRITE",
+      "description": "Substitui todo o conteúdo de um arquivo de texto do Drive.",
+      "depends_on": [
+        "google_drive_get_metadata"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "fileId",
+          "type": "string",
+          "description": "Id do arquivo no Drive.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type": "string",
+          "description": "Nome legível exibido ao usuário (arquivo, contato).",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "content",
+          "type": "string",
+          "description": "Conteúdo em texto UTF-8.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_drive_rename_file",
+      "namespace": "google_drive_file",
+      "effect": "WRITE",
+      "description": "Renomeia um arquivo do Google Drive.",
+      "depends_on": [
+        "google_drive_get_metadata"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "fileId",
+          "type": "string",
+          "description": "Id do arquivo no Drive.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type": "string",
+          "description": "Nome legível exibido ao usuário (arquivo, contato).",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_drive_copy_file",
+      "namespace": "google_drive_file",
+      "effect": "WRITE",
+      "description": "Copia um arquivo do Google Drive com um novo nome.",
+      "depends_on": [
+        "google_drive_get_metadata"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "fileId",
+          "type": "string",
+          "description": "Id do arquivo no Drive.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type": "string",
+          "description": "Nome legível exibido ao usuário (arquivo, contato).",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "parentId",
+          "type": "string",
+          "description": "Id da pasta de destino; vazio para Meu Drive.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_drive_trash_file",
+      "namespace": "google_drive_file",
+      "effect": "DESTRUCTIVE",
+      "description": "Move um arquivo do Google Drive para a lixeira.",
+      "depends_on": [
+        "google_drive_get_metadata"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "fileId",
+          "type": "string",
+          "description": "Id do arquivo no Drive.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type": "string",
+          "description": "Nome legível exibido ao usuário (arquivo, contato).",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_drive_delete_file",
+      "namespace": "google_drive_file",
+      "effect": "DESTRUCTIVE",
+      "description": "Apaga um arquivo do Google Drive de forma permanente, sem lixeira.",
+      "depends_on": [
+        "google_drive_get_metadata"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "fileId",
+          "type": "string",
+          "description": "Id do arquivo no Drive.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type": "string",
+          "description": "Nome legível exibido ao usuário (arquivo, contato).",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_docs_read",
+      "namespace": "google_docs_document",
+      "effect": "READ",
+      "description": "Lê o texto de um documento do Google Docs pelo id.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "documentId",
+          "type": "string",
+          "description": "Id do documento do Google Docs.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_docs_create",
+      "namespace": "google_docs_document",
+      "effect": "WRITE",
+      "description": "Cria um documento no Google Docs com título e texto inicial.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type": "string",
+          "description": "Título.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "initialText",
+          "type": "string",
+          "description": "Texto inicial; vazio para documento em branco.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_docs_replace_text",
+      "namespace": "google_docs_document",
+      "effect": "WRITE",
+      "description": "Substitui todas as ocorrências de um texto num documento do Google Docs.",
+      "depends_on": [
+        "google_docs_read"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "documentId",
+          "type": "string",
+          "description": "Id do documento do Google Docs.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "find",
+          "type": "string",
+          "description": "Texto exato a procurar.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "replace",
+          "type": "string",
+          "description": "Texto que substitui.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "matchCase",
+          "type": "boolean",
+          "description": "Diferenciar maiúsculas de minúsculas.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_docs_append_text",
+      "namespace": "google_docs_document",
+      "effect": "WRITE",
+      "description": "Acrescenta texto no fim de um documento do Google Docs.",
+      "depends_on": [
+        "google_docs_read"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "documentId",
+          "type": "string",
+          "description": "Id do documento do Google Docs.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "text",
+          "type": "string",
+          "description": "Texto.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_docs_batch_update",
+      "namespace": "google_docs_document",
+      "effect": "WRITE",
+      "description": "Aplica requisições batchUpdate da API do Google Docs (formatação, estrutura, tabelas).",
+      "depends_on": [
+        "google_docs_read"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "documentId",
+          "type": "string",
+          "description": "Id do documento do Google Docs.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "requestsJson",
+          "type": "string",
+          "description": "Array JSON de requisições batchUpdate da API do Google.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_get_spreadsheet",
+      "namespace": "google_sheets_spreadsheet",
+      "effect": "READ",
+      "description": "Consulta a estrutura de uma planilha: abas, propriedades e dados das células.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "spreadsheetId",
+          "type": "string",
+          "description": "Id da planilha.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "ranges",
+          "type": "array",
+          "description": "Intervalos em notação A1 (opcional).",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_get_values",
+      "namespace": "google_sheets_values",
+      "effect": "READ",
+      "description": "Lê os valores de um intervalo de uma planilha em notação A1.",
+      "depends_on": [
+        "google_sheets_get_spreadsheet"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "spreadsheetId",
+          "type": "string",
+          "description": "Id da planilha.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "range",
+          "type": "string",
+          "description": "Intervalo em notação A1, ex.: Pagina1!A1:D20.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_create",
+      "namespace": "google_sheets_spreadsheet",
+      "effect": "WRITE",
+      "description": "Cria uma planilha no Google Sheets.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type": "string",
+          "description": "Título.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_update_values",
+      "namespace": "google_sheets_values",
+      "effect": "WRITE",
+      "description": "Escreve valores num intervalo de uma planilha em notação A1.",
+      "depends_on": [
+        "google_sheets_get_values"
+      ],
+      "dag_level": 2,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "spreadsheetId",
+          "type": "string",
+          "description": "Id da planilha.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "range",
+          "type": "string",
+          "description": "Intervalo em notação A1, ex.: Pagina1!A1:D20.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "values",
+          "type": "array",
+          "description": "Linhas de valores.",
+          "required": true,
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_clear_values",
+      "namespace": "google_sheets_values",
+      "effect": "WRITE",
+      "description": "Limpa os valores de um intervalo de uma planilha.",
+      "depends_on": [
+        "google_sheets_get_values"
+      ],
+      "dag_level": 2,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "spreadsheetId",
+          "type": "string",
+          "description": "Id da planilha.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "range",
+          "type": "string",
+          "description": "Intervalo em notação A1, ex.: Pagina1!A1:D20.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_sheets_batch_update",
+      "namespace": "google_sheets_spreadsheet",
+      "effect": "WRITE",
+      "description": "Aplica requisições batchUpdate da API do Google Sheets (fórmulas, abas, formatação, dimensões).",
+      "depends_on": [
+        "google_sheets_get_spreadsheet"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "spreadsheetId",
+          "type": "string",
+          "description": "Id da planilha.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "requestsJson",
+          "type": "string",
+          "description": "Array JSON de requisições batchUpdate da API do Google.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_slides_read",
+      "namespace": "google_slides_presentation",
+      "effect": "READ",
+      "description": "Lê o texto e as notas do apresentador de uma apresentação do Google Slides.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "presentationId",
+          "type": "string",
+          "description": "Id da apresentação.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_slides_create",
+      "namespace": "google_slides_presentation",
+      "effect": "WRITE",
+      "description": "Cria uma apresentação no Google Slides.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type": "string",
+          "description": "Título.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_slides_replace_text",
+      "namespace": "google_slides_presentation",
+      "effect": "WRITE",
+      "description": "Substitui todas as ocorrências de um texto numa apresentação do Google Slides.",
+      "depends_on": [
+        "google_slides_read"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "presentationId",
+          "type": "string",
+          "description": "Id da apresentação.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "find",
+          "type": "string",
+          "description": "Texto exato a procurar.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "replace",
+          "type": "string",
+          "description": "Texto que substitui.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "matchCase",
+          "type": "boolean",
+          "description": "Diferenciar maiúsculas de minúsculas.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_slides_batch_update",
+      "namespace": "google_slides_presentation",
+      "effect": "WRITE",
+      "description": "Aplica requisições batchUpdate da API do Google Slides (slides, formas, imagens).",
+      "depends_on": [
+        "google_slides_read"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "presentationId",
+          "type": "string",
+          "description": "Id da apresentação.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "requestsJson",
+          "type": "string",
+          "description": "Array JSON de requisições batchUpdate da API do Google.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_calendar_list_calendars",
+      "namespace": "google_calendar_calendar",
+      "effect": "READ",
+      "description": "Lista as agendas do Google Calendar disponíveis para o usuário.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": []
+    },
+    {
+      "name": "google_calendar_list_events",
+      "namespace": "google_calendar_event",
+      "effect": "READ",
+      "description": "Lista os eventos da agenda num intervalo de datas, com busca por texto.",
+      "depends_on": [
+        "google_calendar_list_calendars"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "timeMin",
+          "type": "string",
+          "description": "Início do intervalo, RFC 3339 (inclusivo).",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "timeMax",
+          "type": "string",
+          "description": "Fim do intervalo, RFC 3339 (exclusivo).",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "query",
+          "type": "string",
+          "description": "Texto da busca.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "maxResults",
+          "type": "integer",
+          "description": "Quantidade máxima de resultados.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ]
+    },
+    {
+      "name": "google_calendar_get_event",
+      "namespace": "google_calendar_event",
+      "effect": "READ",
+      "description": "Consulta um evento da agenda pelo id: horário, participantes e descrição.",
+      "depends_on": [
+        "google_calendar_list_events"
+      ],
+      "dag_level": 2,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "eventId",
+          "type": "string",
+          "description": "Id do evento.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "calendarId",
+          "type": "string",
+          "description": "Id da agenda; primary para a agenda principal.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_calendar_create_event",
+      "namespace": "google_calendar_event",
+      "effect": "WRITE",
+      "description": "Cria um evento na agenda (reunião, compromisso) com horário e participantes.",
+      "depends_on": [
+        "google_calendar_list_events"
+      ],
+      "dag_level": 2,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "summary",
+          "type": "string",
+          "description": "Título do evento.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "start",
+          "type": "string",
+          "description": "Início em RFC 3339.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "end",
+          "type": "string",
+          "description": "Fim em RFC 3339.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "calendarId",
+          "type": "string",
+          "description": "Id da agenda; primary para a agenda principal.",
+          "required": true
+        },
+        {
+          "ordinal": 5,
+          "name": "description",
+          "type": "string",
+          "description": "Descrição do evento.",
+          "required": true
+        },
+        {
+          "ordinal": 6,
+          "name": "attendees",
+          "type": "array",
+          "description": "E-mails dos participantes.",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_calendar_update_event",
+      "namespace": "google_calendar_event",
+      "effect": "WRITE",
+      "description": "Altera título, horário ou descrição de um evento da agenda.",
+      "depends_on": [
+        "google_calendar_get_event"
+      ],
+      "dag_level": 3,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "eventId",
+          "type": "string",
+          "description": "Id do evento.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "calendarId",
+          "type": "string",
+          "description": "Id da agenda; primary para a agenda principal.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "summary",
+          "type": "string",
+          "description": "Título do evento.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "start",
+          "type": "string",
+          "description": "Início em RFC 3339.",
+          "required": true
+        },
+        {
+          "ordinal": 5,
+          "name": "end",
+          "type": "string",
+          "description": "Fim em RFC 3339.",
+          "required": true
+        },
+        {
+          "ordinal": 6,
+          "name": "description",
+          "type": "string",
+          "description": "Descrição do evento.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_calendar_respond_to_event",
+      "namespace": "google_calendar_event",
+      "effect": "WRITE",
+      "description": "Responde a um convite da agenda: aceitar, recusar ou talvez.",
+      "depends_on": [
+        "google_calendar_get_event"
+      ],
+      "dag_level": 3,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "eventId",
+          "type": "string",
+          "description": "Id do evento.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "calendarId",
+          "type": "string",
+          "description": "Id da agenda; primary para a agenda principal.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "responseStatus",
+          "type": "string",
+          "description": "Resposta ao convite.",
+          "required": true,
+          "enum": [
+            "accepted",
+            "declined",
+            "tentative"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "google_calendar_delete_event",
+      "namespace": "google_calendar_event",
+      "effect": "DESTRUCTIVE",
+      "description": "Exclui um evento da agenda.",
+      "depends_on": [
+        "google_calendar_get_event"
+      ],
+      "dag_level": 3,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "eventId",
+          "type": "string",
+          "description": "Id do evento.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "calendarId",
+          "type": "string",
+          "description": "Id da agenda; primary para a agenda principal.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "summary",
+          "type": "string",
+          "description": "Título do evento.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_chat_list_spaces",
+      "namespace": "google_chat_space",
+      "effect": "READ",
+      "description": "Lista os espaços do Google Chat visíveis para o usuário.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "pageSize",
+          "type": "integer",
+          "description": "Quantidade máxima de itens.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ]
+    },
+    {
+      "name": "google_chat_list_messages",
+      "namespace": "google_chat_message",
+      "effect": "READ",
+      "description": "Lista as mensagens de um espaço do Google Chat.",
+      "depends_on": [
+        "google_chat_list_spaces"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "space",
+          "type": "string",
+          "description": "Nome do recurso do espaço, ex.: spaces/AAAA.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "pageSize",
+          "type": "integer",
+          "description": "Quantidade máxima de itens.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ]
+    },
+    {
+      "name": "google_chat_list_memberships",
+      "namespace": "google_chat_membership",
+      "effect": "READ",
+      "description": "Lista os membros de um espaço do Google Chat.",
+      "depends_on": [
+        "google_chat_list_spaces"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "space",
+          "type": "string",
+          "description": "Nome do recurso do espaço, ex.: spaces/AAAA.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "pageSize",
+          "type": "integer",
+          "description": "Quantidade máxima de itens.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ]
+    },
+    {
+      "name": "google_chat_send_message",
+      "namespace": "google_chat_message",
+      "effect": "WRITE",
+      "description": "Envia uma mensagem de texto num espaço do Google Chat.",
+      "depends_on": [
+        "google_chat_list_spaces"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "space",
+          "type": "string",
+          "description": "Nome do recurso do espaço, ex.: spaces/AAAA.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "text",
+          "type": "string",
+          "description": "Texto.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_chat_mark_read",
+      "namespace": "google_chat_space",
+      "effect": "WRITE",
+      "description": "Marca um espaço do Google Chat como lido.",
+      "depends_on": [
+        "google_chat_list_spaces"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "space",
+          "type": "string",
+          "description": "Nome do recurso do espaço, ex.: spaces/AAAA.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_chat_mark_unread",
+      "namespace": "google_chat_space",
+      "effect": "WRITE",
+      "description": "Marca um espaço do Google Chat como não lido.",
+      "depends_on": [
+        "google_chat_list_spaces"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "space",
+          "type": "string",
+          "description": "Nome do recurso do espaço, ex.: spaces/AAAA.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_people_get_profile",
+      "namespace": "google_people_profile",
+      "effect": "READ",
+      "description": "Consulta o perfil Google do usuário conectado: nome, e-mail e foto.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": []
+    },
+    {
+      "name": "google_people_search_contacts",
+      "namespace": "google_people_contact",
+      "effect": "READ",
+      "description": "Busca contatos do usuário por nome, e-mail ou telefone.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "query",
+          "type": "string",
+          "description": "Texto da busca.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "pageSize",
+          "type": "integer",
+          "description": "Quantidade máxima de itens.",
+          "required": true,
+          "minimum": 1,
+          "maximum": 30
+        }
+      ]
+    },
+    {
+      "name": "google_people_create_contact",
+      "namespace": "google_people_contact",
+      "effect": "WRITE",
+      "description": "Cria um contato com nome, e-mail e telefone.",
+      "depends_on": [],
+      "dag_level": 0,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "givenName",
+          "type": "string",
+          "description": "Nome.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "familyName",
+          "type": "string",
+          "description": "Sobrenome.",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "email",
+          "type": "string",
+          "description": "E-mail principal.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "phone",
+          "type": "string",
+          "description": "Telefone principal.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_people_update_contact",
+      "namespace": "google_people_contact",
+      "effect": "WRITE",
+      "description": "Altera nome, e-mail ou telefone de um contato existente.",
+      "depends_on": [
+        "google_people_search_contacts"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "resourceName",
+          "type": "string",
+          "description": "Nome do recurso do contato, ex.: people/c123.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "etag",
+          "type": "string",
+          "description": "ETag atual do contato (vem da busca).",
+          "required": true
+        },
+        {
+          "ordinal": 3,
+          "name": "givenName",
+          "type": "string",
+          "description": "Nome.",
+          "required": true
+        },
+        {
+          "ordinal": 4,
+          "name": "familyName",
+          "type": "string",
+          "description": "Sobrenome.",
+          "required": true
+        },
+        {
+          "ordinal": 5,
+          "name": "email",
+          "type": "string",
+          "description": "E-mail principal.",
+          "required": true
+        },
+        {
+          "ordinal": 6,
+          "name": "phone",
+          "type": "string",
+          "description": "Telefone principal.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "google_people_delete_contact",
+      "namespace": "google_people_contact",
+      "effect": "DESTRUCTIVE",
+      "description": "Exclui um contato.",
+      "depends_on": [
+        "google_people_search_contacts"
+      ],
+      "dag_level": 1,
+      "parameters": [
+        {
+          "ordinal": 1,
+          "name": "resourceName",
+          "type": "string",
+          "description": "Nome do recurso do contato, ex.: people/c123.",
+          "required": true
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type": "string",
+          "description": "Nome legível exibido ao usuário (arquivo, contato).",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
