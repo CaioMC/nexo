@@ -1,0 +1,16 @@
+# Build
+target/
+node_modules/
+dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
