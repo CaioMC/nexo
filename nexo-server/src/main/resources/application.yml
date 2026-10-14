@@ -1,0 +1,104 @@
+# ════════════════════════════════════════════════════════════════════════════════
+#  nexo-server: configuração padrão
+#
+#  Chaves e URLs vêm do ambiente ou do .env na raiz do repositório (modelo em ../.env.example).
+#  Variável exportada no terminal tem prioridade sobre o .env.
+# ════════════════════════════════════════════════════════════════════════════════
+
+nexo:
+  # ── 1. Modelo (OpenAI ou proxy compatível) ──────────────────────────────────────
+  openai:
+    base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-5.4-mini}
+    # A coluna tool_embedding.embedding é vector(1536): trocar de modelo exige migration nova.
+    embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+    timeout: ${OPENAI_TIMEOUT_SECONDS:120}s
+
+
+  # ── 2. Busca de ferramentas (RAG + DAG no código) ───────────────────────────────
+  retrieval:
+    strategy: HYBRID          # FULL_TEXT, VECTOR ou HYBRID; sem chave cai para FULL_TEXT
+    top-k: 5
+    candidates: 50            # candidatos de cada lista (lexical e vetorial) antes da fusão
+    max-candidates: 400       # teto quando o filtro de contextos derruba muitos candidatos
+    rrf-k: 60
+    apply-dag: true
+    suggestion-top: 3
+    index-on-startup: true    # gera os embeddings que faltam (ferramenta nova ou texto alterado)
+
+  # ── 3. Identidade (login só Google, doc 04) ─────────────────────────────────────
+  identity:
+    # AES-256 em Base64 (openssl rand -base64 32). Vazia = chave aleatória por subida (só dev).
+    token-key: ${NEXO_TOKEN_KEY:}
+    token-key-version: ${NEXO_TOKEN_KEY_VERSION:1}
+    web-origin: ${NEXO_WEB_ORIGIN:http://localhost:5173}
+    google-token-uri: https://oauth2.googleapis.com/token
+    google-revoke-uri: https://oauth2.googleapis.com/revoke
+
+  # ── 4. Agente (doc 11) ──────────────────────────────────────────────────────────
+  agent:
+    max-model-calls: 12           # RN-11
+    max-tool-calls: 20            # RN-11
+    turn-timeout: 3m              # RN-11 (esperar aprovação não conta)
+    approval-ttl: 15m             # RN-06
+    approval-sweep: 30s
+    prerequisite-window: 30m      # RN-04
+    history-turns: 20
+    tool-memory-turns: 3
+    delta-window: 50ms
+    exposure: CLIENT_TOOL_SEARCH  # ou PRESELECTED
+    default-time-zone: America/Sao_Paulo
+    google-api-base: ${NEXO_GOOGLE_API_BASE:}
+
+# ── 5. Banco, sessão e OAuth ────────────────────────────────────────────────────
+spring:
+  application:
+    name: nexo-server
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:defina-no-env}
+            client-secret: ${GOOGLE_CLIENT_SECRET:defina-no-env}
+            scope: openid, email, profile
+            redirect-uri: ${NEXO_SERVER_URL:http://localhost:8080}/login/oauth2/code/google
+  session:
+    jdbc:
+      initialize-schema: never    # tabelas em V2__identidade.sql
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+  datasource:
+    url: ${NEXO_DB_URL:jdbc:postgresql://127.0.0.1:5433/nexo}
+    username: ${NEXO_DB_USER:nexo}
+    password: ${NEXO_DB_PASSWORD:nexo}
+  flyway:
+    locations: classpath:db/migration
+  threads:
+    virtual:
+      enabled: true
+
+# ── 6. Servidor ─────────────────────────────────────────────────────────────────
+server:
+  address: 127.0.0.1
+  port: 8080
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        name: SESSION
+        http-only: true
+        same-site: lax
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    io.github.caiomc.nexo: INFO
